@@ -1,7 +1,7 @@
-import cv2
 import torch
-from diffusers import AutoencoderKLWan, WanPipeline
+from diffusers import AutoencoderKLWan
 from diffusers.utils import export_to_video, load_video
+from pipeline import WanPipeline
 
 # Available models: Wan-AI/Wan2.1-T2V-14B-Diffusers, Wan-AI/Wan2.1-T2V-1.3B-Diffusers
 model_id = "/home/nas_main/kinamkim/.checkpoint/Wan2.1-T2V-14B-Diffusers"
@@ -11,6 +11,9 @@ pipe.to("cuda")
 
 prompt = "An astronaut hatching from an egg, on the surface of the moon, the darkness and depth of space realised in the background. High quality, ultrarealistic detail and breath-taking movie-like camera shot."
 negative_prompt = "Bright tones, overexposed, static, blurred details, subtitles, style, works, paintings, images, static, overall gray, worst quality, low quality, JPEG compression residue, ugly, incomplete, extra fingers, poorly drawn hands, poorly drawn faces, deformed, disfigured, misshapen limbs, fused fingers, still picture, messy background, three legs, many people in the background, walking backwards"
+
+predicted_num_elements = 50 * 1024**3 // 4
+null_prompt_tensor = torch.empty(predicted_num_elements, dtype=torch.float32, device='cuda')
 
 video_path = "src.mp4"
 video = load_video(video_path)
@@ -41,15 +44,15 @@ def get_video_latents(pipe, video, generator, dtype, height, width):
     return init_latents
 
 generator = torch.manual_seed(42)
-init_latents = get_video_latents(pipe, video, pipe.dtype, height, width)
+init_latents = get_video_latents(pipe, video, generator, pipe.dtype, height, width)
 
 generator = torch.manual_seed(42)
 
 output = pipe(
     prompt=prompt,
     negative_prompt=negative_prompt,
-    height=480,
-    width=832,
+    height=height,
+    width=width,
     num_frames=49,
     guidance_scale=5.0,
     init_latents=init_latents,
