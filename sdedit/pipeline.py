@@ -134,6 +134,9 @@ def __call__(
             if self.interrupt:
                 continue
 
+            noise = randn_tensor(latents.shape, generator=generator, device=device, dtype=torch.float32)
+            latents[:, :, 0] = self.scheduler.add_noise(init_latents[:, :, 0], noise[:, :, 0], torch.tensor([t]))
+
             self._current_timestep = t
             latent_model_input = latents.to(transformer_dtype)
             timestep = t.expand(latents.shape[0])
